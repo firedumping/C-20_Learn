@@ -16,7 +16,7 @@
 #include "solutions/templates.hpp"
 #endif
 
-namespace labs {
+namespace course_labs {
 
 struct GreetingResult {
     std::string name;
@@ -163,4 +163,4 @@ private:
     int limit_{};
 };
 
-} // namespace labs
+} // namespace course_labs

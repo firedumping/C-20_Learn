@@ -85,6 +85,8 @@ void test_aggregation() {
           "report contains valid count");
     check(report.find("Average duration: 20.00 ms") != std::string::npos,
           "report contains average duration");
+    check(report.find("2026-10-25T10: 2") != std::string::npos,
+          "report formats hourly count without a duplicate colon");
 }
 
 void test_empty_input() {

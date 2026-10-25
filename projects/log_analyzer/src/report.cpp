@@ -26,7 +26,7 @@ std::string format_report(const Statistics& statistics) {
 
     output += "\nRequests by hour\n";
     for (const auto& [hour, count] : statistics.hourly_counts) {
-        output += std::format("  {}: {}\n", hour, count);
+        output += std::format("  {} {}\n", hour, count);
     }
     return output;
 }

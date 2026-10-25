@@ -11,7 +11,7 @@
 #include <variant>
 #include <vector>
 
-namespace labs {
+namespace course_labs {
 
 std::optional<int> parse_integer(std::string_view text) {
     (void)text;
@@ -210,4 +210,4 @@ std::optional<int> SquareGenerator::next() {
     return std::nullopt; // TODO
 }
 
-} // namespace labs
+} // namespace course_labs

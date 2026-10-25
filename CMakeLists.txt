@@ -40,11 +40,8 @@ add_executable(labs_starter
 target_include_directories(labs_starter PRIVATE labs)
 target_link_libraries(labs_starter PRIVATE course_warnings)
 target_compile_definitions(labs_starter PRIVATE CPP20_COURSE_STARTER=1)
-add_test(NAME labs_starter COMMAND labs_starter)
-set_tests_properties(labs_starter PROPERTIES
-    DISABLED TRUE
-    DISABLED_REASON "Starter intentionally fails until the learner implements it."
-)
+# The starter is intentionally incomplete. Run it manually while learning;
+# CTest checks the reference implementation and the capstone project.
 
 add_executable(labs_solution
     labs/tests.cpp
