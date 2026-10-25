@@ -187,6 +187,31 @@ std::format("{0} {1} {0}", "x", "y");
 
 自定义类型格式化需要特化 `std::formatter<T, CharT>`，这属于进阶内容；先学会用标准类型构造格式字符串。
 
+一个最小自定义格式化器：
+
+```cpp
+struct Version {
+    int major;
+    int minor;
+    int patch;
+};
+
+template <>
+struct std::formatter<Version> {
+    constexpr auto parse(std::format_parse_context& context) {
+        return context.begin(); // 这个简化版本不接受额外格式说明
+    }
+
+    auto format(const Version& version, std::format_context& context) const {
+        return std::format_to(
+            context.out(), "{}.{}.{}",
+            version.major, version.minor, version.patch);
+    }
+};
+```
+
+上面的 `parse` 只接受最常见的 `{}`。如果要支持 `{:>20}`、精度或自定义说明，必须真正解析格式说明并驱动 `context.out()` 的格式化过程。不要忽略 `parse` 返回位置，否则会破坏整个格式字符串的解析。
+
 ## 5. 三路比较 `<=>`
 
 ```cpp
@@ -245,10 +270,13 @@ consteval int compile_time_square(int x) {
 }
 
 constexpr int value = compile_time_square(4);
-// int runtime = compile_time_square(5); // 这里仍可在编译期求值
+int still_constant = compile_time_square(5); // 合法：调用本身在编译期求值
+
+int input = 6;
+// int invalid = compile_time_square(input); // 错误：实参不是常量表达式
 ```
 
-`consteval` 函数必须在常量求值上下文中调用，不适合普通运行时输入。
+`consteval` 函数必须在常量求值上下文中调用；函数结果可以存入普通运行期变量，但函数实参必须能形成常量表达式。因此它不适合依赖真实运行时输入的计算。
 
 ### `constinit`
 
@@ -274,6 +302,7 @@ constinit int global_value = 10;
 
 constexpr bool little_endian = std::endian::native == std::endian::little;
 
+static_assert(sizeof(float) == sizeof(std::uint32_t));
 std::uint32_t bits = std::bit_cast<std::uint32_t>(3.5f);
 ```
 

@@ -28,6 +28,17 @@
       }
     },
     {
+      "name": "sanitize",
+      "displayName": "Debug with ASan and UBSan",
+      "inherits": "dev",
+      "binaryDir": "${sourceDir}/build-sanitize",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CPP20_COURSE_WARNINGS_AS_ERRORS": "ON",
+        "CPP20_COURSE_SANITIZE": "ON"
+      }
+    },
+    {
       "name": "dev-vs",
       "displayName": "Visual Studio 2022 Debug",
       "generator": "Visual Studio 17 2022",
@@ -48,6 +59,10 @@
       "configurePreset": "release"
     },
     {
+      "name": "sanitize",
+      "configurePreset": "sanitize"
+    },
+    {
       "name": "dev-vs",
       "configurePreset": "dev-vs",
       "configuration": "Debug"
@@ -64,6 +79,13 @@
     {
       "name": "release",
       "configurePreset": "release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "sanitize",
+      "configurePreset": "sanitize",
       "output": {
         "outputOnFailure": true
       }

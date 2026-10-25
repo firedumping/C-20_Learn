@@ -40,6 +40,49 @@ int main() {
 
 头文件通常只放声明和必要定义，不应放普通函数的定义。否则多个翻译单元包含它时，可能违反单一定义规则（ODR）。
 
+### 单一定义规则、链接与头文件
+
+ODR（One Definition Rule）允许同一个实体在多个翻译单元中被声明，但一个非 `inline` 函数或变量在整个程序中只能有一个定义。链接属性决定一个名字能否被其他翻译单元看到：
+
+- 普通命名空间函数和变量通常有**外部链接**，整个程序共享一个定义。
+- `static` 命名空间变量或匿名命名空间中的名字有**内部链接**，每个翻译单元拥有自己的副本。
+- 局部变量没有链接。
+
+下面写法会在多个 `.cpp` 包含该头文件时产生重复定义：
+
+```cpp
+// bad.hpp
+int global_counter = 0;       // 错误：每个包含者都定义一个实体
+int next_id() { return ++global_counter; }
+```
+
+如果确实要在头文件提供定义，应使用 `inline`：
+
+```cpp
+// good.hpp
+#pragma once
+
+inline int global_counter = 0;
+inline int next_id() {
+    return ++global_counter;
+}
+```
+
+`inline` 在这里首先是一条 ODR 规则：允许同一实体在多个翻译单元中出现同一个定义。它不是“强制编译器内联优化”的命令。类内定义的成员函数、`constexpr` 函数以及函数模板通常具有可安全放入头文件的链接属性。
+
+`#pragma once` 在实践中很常用，但不是标准保证；可移植头文件仍可使用传统包含守卫：
+
+```cpp
+#ifndef PROJECT_MATH_HPP
+#define PROJECT_MATH_HPP
+
+int add(int, int);
+
+#endif
+```
+
+头文件应尽量自包含：直接包含自己用到的标准头，不依赖调用者碰巧先包含了什么。模板定义通常要看到完整实现，因此常留在头文件；这一步会在[第 8 章](08_templates_and_deduction.md)详细解释。
+
 ### 三类常见错误
 
 | 阶段 | 典型信息 | 含义 |

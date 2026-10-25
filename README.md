@@ -19,9 +19,9 @@
 4. 完成 `labs/` 中对应练习，让程序自行检查结果。
 5. 每章结束填写自测题；不能解释的条目就是下一轮复习重点。
 
-建议每周投入 6 到 9 小时。全部完成通常需要 16 周，而不是 16 天。
+建议每周投入 6 到 9 小时。核心课程通常需要 16 周，而不是 16 天；第 17～19 章是面向真实项目的进阶附录。
 
-## 16 周路线
+## 核心 16 周路线
 
 | 周次 | 主题 | 教程 | 配套练习 |
 |---|---|---|---|
@@ -41,6 +41,16 @@
 | 14 | 模块与协程：原理、现状、选型 | [14](docs/14_modules_and_coroutines.md) | Lab 14 |
 | 15 | 综合项目的架构与迭代 | [15](docs/15_capstone_guide.md) | Capstone 第 1、2 阶段 |
 | 16 | 项目验收、性能复盘、掌握度评估 | [16](docs/16_mastery_checklist.md) | Capstone 第 3、4 阶段 |
+
+## 进阶附录
+
+建议在完成核心项目后追加约 2 周。每章都包含独立练习和验收问题。
+
+| 顺序 | 重点 | 教程 | 对应缺口 |
+|---|---|---|---|
+| 17 | 多翻译单元、ODR、转换、对象表示、ABI | [17](docs/17_language_contracts.md) | 从单文件代码进入库和真实工程 |
+| 18 | 文件、Unicode、严格解析、可移植二进制格式 | [18](docs/18_data_boundaries.md) | 输入输出与数据边界 |
+| 19 | PMR、抽象选择、有界并发、测试与性能决策 | [19](docs/19_expert_decisions.md) | 从“会写”进入技术选型 |
 
 ## 目录
 
@@ -103,7 +113,17 @@ ctest --test-dir build --output-on-failure
 .\build\labs_solution.exe
 ```
 
-Visual Studio 预设的输出位于 `build-vs\Debug\`。Linux 或 macOS 下可执行文件没有 `.exe` 后缀。CMake 的配置输出会给出可执行文件位置。
+Visual Studio 预设的输出位于 `build-vs\Debug\`。Linux、macOS 或 WSL 下可执行文件没有 `.exe` 后缀，例如运行 `./build/labs_starter`。CMake 的配置输出会给出可执行文件位置。
+
+GCC/Clang 下可用独立 preset 运行 ASan/UBSan：
+
+```powershell
+cmake --preset sanitize
+cmake --build --preset sanitize
+ctest --preset sanitize --output-on-failure
+```
+
+MSVC 的 sanitizer preset 启用 AddressSanitizer；UBSan 的可用性取决于工具链。
 
 ## 使用练习的正确方法
 
@@ -129,5 +149,7 @@ Visual Studio 预设的输出位于 `build-vs\Debug\`。Linux 或 macOS 下可�
 - 能给出至少一次算法和数据结构的复杂度分析。
 - 能用调试器或 sanitizer 定位一个真实缺陷。
 - 能不查资料写出 Concepts、Ranges、移动构造、异常安全的类和一个安全的线程示例。
+- 能拆分多文件库接口，并解释 ODR、所有权、转换和二进制格式的合同。
+- 能说明为什么选择某个容器、抽象方式或分配策略，而不只是写出可运行代码。
 
 先从[第 1 章](docs/01_getting_started.md)开始。不要跳过所有权与生命周期章节；绝大多数“C++ 很难”的问题都来自这里。

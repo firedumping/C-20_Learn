@@ -1,5 +1,5 @@
 param(
-    [ValidateSet("dev", "release", "dev-vs")]
+    [ValidateSet("dev", "release", "sanitize", "dev-vs")]
     [string]$Preset = "dev"
 )
 

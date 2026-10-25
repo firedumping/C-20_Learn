@@ -5,7 +5,6 @@
 #include <iostream>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <variant>
 #include <vector>
 
@@ -56,20 +55,12 @@ int main(int argc, char** argv) {
         return 2;
     }
 
-    std::vector<std::string> lines;
-    std::string line;
-    while (std::getline(input, line)) {
-        if (!line.empty() && line.back() == '\r') {
-            line.pop_back();
-        }
-        lines.push_back(std::move(line));
-    }
+    const auto statistics = log_analyzer::analyze_stream(input);
     if (input.bad()) {
         std::cerr << "error: failed while reading '" << options.path << "'\n";
         return 2;
     }
 
-    const auto statistics = log_analyzer::analyze_lines(lines);
     std::cout << log_analyzer::format_report(statistics);
 
     if (options.strict && statistics.invalid_lines != 0) {

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <iosfwd>
 #include <map>
 #include <span>
 #include <string>
@@ -43,6 +44,7 @@ struct Statistics {
 
 ParseResult parse_line(std::string_view line);
 Statistics analyze_lines(std::span<const std::string> lines);
+Statistics analyze_stream(std::istream& input);
 void add_record(Statistics& statistics, const LogRecord& record);
 
 enum class CliError {

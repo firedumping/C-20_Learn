@@ -2,6 +2,7 @@
 #include "log_analyzer/report.hpp"
 
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -44,6 +45,8 @@ void test_invalid_lines() {
          ParseError::wrong_field_count},
         {"2026-13-25T10:15:30Z INFO request completed status=200 duration_ms=1",
          ParseError::bad_timestamp},
+        {"2026-02-29T10:15:30Z INFO request completed status=200 duration_ms=1",
+         ParseError::bad_timestamp},
         {"2026-10-25T10:15:30Z TRACE request completed status=200 duration_ms=1",
          ParseError::bad_level},
         {"2026-10-25T10:15:30Z INFO request completed status=99 duration_ms=1",
@@ -58,6 +61,14 @@ void test_invalid_lines() {
         check(error != nullptr && *error == expected,
               "invalid line reports expected error");
     }
+}
+
+void test_leap_day() {
+    const auto parsed = log_analyzer::parse_line(
+        "2024-02-29T10:15:30Z INFO request completed "
+        "status=200 duration_ms=1");
+    check(std::holds_alternative<log_analyzer::LogRecord>(parsed),
+          "valid leap day parses");
 }
 
 void test_aggregation() {
@@ -97,6 +108,21 @@ void test_empty_input() {
           "empty average avoids division by zero");
 }
 
+void test_streaming_analysis() {
+    std::istringstream input{
+        "2026-10-25T10:15:30Z INFO request completed "
+        "status=200 duration_ms=10\r\n"
+        "broken\n"
+        "2026-10-25T10:16:30Z WARN request completed "
+        "status=503 duration_ms=30\n"};
+    const auto statistics = log_analyzer::analyze_stream(input);
+    check(statistics.total_lines == 3, "stream total line count");
+    check(statistics.valid_lines == 2, "stream valid line count");
+    check(statistics.invalid_lines == 1, "stream invalid line count");
+    check(statistics.average_duration_ms == 20.0,
+          "stream handles CRLF and aggregates");
+}
+
 void test_cli() {
     using log_analyzer::CliError;
     using log_analyzer::CliOptions;
@@ -127,8 +153,10 @@ void test_cli() {
 int main() {
     test_valid_line();
     test_invalid_lines();
+    test_leap_day();
     test_aggregation();
     test_empty_input();
+    test_streaming_analysis();
     test_cli();
 
     if (failures != 0) {

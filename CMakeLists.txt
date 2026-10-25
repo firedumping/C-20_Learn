@@ -10,6 +10,7 @@ find_package(Threads REQUIRED)
 
 option(CPP20_COURSE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 option(CPP20_COURSE_BUILD_PROJECT "Build the capstone project" ON)
+option(CPP20_COURSE_SANITIZE "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 
 add_library(course_warnings INTERFACE)
 if(MSVC)
@@ -28,6 +29,24 @@ else()
     )
     if(CPP20_COURSE_WARNINGS_AS_ERRORS)
         target_compile_options(course_warnings INTERFACE -Werror)
+    endif()
+endif()
+
+if(CPP20_COURSE_SANITIZE)
+    if(MSVC)
+        target_compile_options(course_warnings INTERFACE
+            /fsanitize=address
+            /Zi
+        )
+        target_link_options(course_warnings INTERFACE /fsanitize=address)
+    else()
+        target_compile_options(course_warnings INTERFACE
+            -fsanitize=address,undefined
+            -fno-omit-frame-pointer
+        )
+        target_link_options(course_warnings INTERFACE
+            -fsanitize=address,undefined
+        )
     endif()
 endif()
 

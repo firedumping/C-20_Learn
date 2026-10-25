@@ -329,7 +329,80 @@ private:
 
 参数复制发生在函数体之前；如果构造成员出错，成员没有被修改。最终 `swap` 通常不抛异常。
 
-## 8. 接口设计小例子
+## 8. 运算符重载
+
+运算符重载用于让自定义类型拥有与内置类型相似的表达方式，但它不是装饰语法。只有当运算符的含义对领域类型显而易见时才重载。
+
+```cpp
+#include <compare>
+#include <cstdint>
+#include <limits>
+#include <optional>
+#include <ostream>
+
+class Cents {
+public:
+    explicit constexpr Cents(std::int64_t value) noexcept
+        : value_{value} {}
+
+    constexpr std::int64_t count() const noexcept {
+        return value_;
+    }
+
+    bool operator==(const Cents&) const = default;
+    auto operator<=>(const Cents&) const = default;
+
+    friend constexpr std::optional<Cents>
+    operator+(Cents lhs, Cents rhs) noexcept {
+        if (rhs.value_ > 0 &&
+            lhs.value_ > std::numeric_limits<std::int64_t>::max() - rhs.value_) {
+            return std::nullopt;
+        }
+        if (rhs.value_ < 0 &&
+            lhs.value_ < std::numeric_limits<std::int64_t>::min() - rhs.value_) {
+            return std::nullopt;
+        }
+        return Cents{lhs.value_ + rhs.value_};
+    }
+
+private:
+    std::int64_t value_;
+};
+
+std::ostream& operator<<(std::ostream& output, Cents amount) {
+    return output << amount.count() << " cents";
+}
+```
+
+设计规则：
+
+- 算术运算符保持与内置运算一致的含义和可交换性。
+- 比较运算符必须互相一致；`a == b` 不能与 `a < b`、`b < a` 的状态相互矛盾。
+- 二元对称运算符常写成非成员或隐藏友元，让左右两边的转换机会一致。
+- 赋值、下标、函数调用和箭头只能是成员函数。
+- `operator bool` 使用 `explicit`，防止对象悄悄参与无关算术。
+- 不要重载 `&&`、`||` 或逗号来改变短路和求值顺序；这会让调用者依赖难以发现的语义。
+- 不要为了显得简洁重载 `+` 表示写入、发送或删除。
+
+示例中的 `operator+` 返回 `std::optional<Cents>`：加法溢出时明确返回空值，而不是产生未定义行为或伪装成成功。真实金额类型也可以选择抛出异常，前提是团队能一致处理该错误模型。
+
+如果类型有强类型单位，可使用包装类型防止单位混用：
+
+```cpp
+struct Meters {
+    explicit constexpr Meters(double value) : value{value} {}
+    double value;
+};
+
+struct Seconds {
+    explicit constexpr Seconds(double value) : value{value} {}
+    double value;
+};
+```
+
+编译器会拒绝 `Meters / Seconds` 与 `Seconds / Meters` 的意外混用；确有需求时再提供具名运算函数，而不是给所有单位开放隐式转换。
+
+## 9. 接口设计小例子
 
 考虑一个表示“库存”的类。需要回答：
 
@@ -386,6 +459,16 @@ private:
 - 成功后整体替换。
 - 写出你依赖的异常安全前提。
 
+## 练习 4：金额类型
+
+实现以“分”为单位的 `Money`：
+
+- 只允许显式从整数构造。
+- 支持同类型加法、相等和排序。
+- 提供不会溢出的加法结果，并明确错误表示。
+- 实现 `operator<<`，输出稳定的文本格式。
+- 不为混合货币提供隐式转换。
+
 ## 自测
 
 1. 类的“不变量”是什么？
@@ -393,6 +476,8 @@ private:
 3. Rule of Zero 为什么通常优于手写 Rule of Five？
 4. 移动后的对象还能做什么？
 5. 什么是强异常安全保证？
+6. 哪些运算符最适合成员函数，哪些通常适合非成员函数？
+7. 为什么 `operator bool` 通常要加 `explicit`？
 
 ## 下一步
 

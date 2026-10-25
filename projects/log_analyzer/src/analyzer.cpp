@@ -1,5 +1,7 @@
 #include "log_analyzer/analyzer.hpp"
 
+#include <array>
+#include <istream>
 #include <limits>
 #include <optional>
 #include <string_view>
@@ -18,6 +20,19 @@ std::optional<int> parse_fixed_hundred(std::string_view text) {
         return std::nullopt;
     }
     return (text[0] - '0') * 10 + (text[1] - '0');
+}
+
+int days_in_month(int year, int month) {
+    constexpr std::array<int, 12> ordinary_days{
+        31, 28, 31, 30, 31, 30,
+        31, 31, 30, 31, 30, 31,
+    };
+    if (month != 2) {
+        return ordinary_days[static_cast<std::size_t>(month - 1)];
+    }
+    const bool leap =
+        (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+    return leap ? 29 : 28;
 }
 
 bool is_valid_timestamp(std::string_view timestamp) {
@@ -58,7 +73,8 @@ bool is_valid_timestamp(std::string_view timestamp) {
 
     return year >= 1970 &&
            month && *month >= 1 && *month <= 12 &&
-           day && *day >= 1 && *day <= 31 &&
+           day && *day >= 1 &&
+           *day <= days_in_month(year, *month) &&
            hour && *hour <= 23 &&
            minute && *minute <= 59 &&
            second && *second <= 59;
@@ -163,8 +179,29 @@ void add_record(Statistics& statistics, const LogRecord& record) {
 
 Statistics analyze_lines(std::span<const std::string> lines) {
     Statistics statistics;
-    statistics.total_lines = lines.size();
     for (const std::string& line : lines) {
+        ++statistics.total_lines;
+        const auto parsed = parse_line(line);
+        if (const auto* record = std::get_if<LogRecord>(&parsed)) {
+            add_record(statistics, *record);
+        } else {
+            ++statistics.invalid_lines;
+        }
+    }
+    if (statistics.valid_lines == 0) {
+        statistics.average_duration_ms = 0.0;
+    }
+    return statistics;
+}
+
+Statistics analyze_stream(std::istream& input) {
+    Statistics statistics;
+    std::string line;
+    while (std::getline(input, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        ++statistics.total_lines;
         const auto parsed = parse_line(line);
         if (const auto* record = std::get_if<LogRecord>(&parsed)) {
             add_record(statistics, *record);

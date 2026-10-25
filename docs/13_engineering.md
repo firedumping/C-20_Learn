@@ -129,6 +129,22 @@ bool check(bool condition, std::string_view message) {
 - 不测试实现细节，除非细节是合同。
 - 不依赖网络、系统时间和全局状态做脆弱测试。
 
+### CTest 显示 `Not Run` 怎么排查
+
+`Not Run` 通常不是断言失败，而是 CTest 找不到测试可执行文件。顺序应当是：
+
+1. 运行 `cmake --build --preset dev --verbose`，先确认构建真正成功。
+2. 如果 Ninja 在测试链接前失败，先修第一个编译/链接错误。
+3. 检查 CTest 注册的命令路径和生成器输出目录。
+4. 最后才运行 `ctest --preset dev --output-on-failure`。
+
+两个容易遇到的 C++ 冲突：
+
+- 全局命名空间 `labs` 会与 C 标准库函数 `::labs(long)` 冲突。
+- 测试辅助函数叫 `equal` 时，标准库类型的实参可能通过 ADL 找到 `std::equal`，导致错误重载被选中。
+
+诊断代码问题时保留编译器原始错误，而不是只看 CTest 的汇总。第一个编译错误通常才是根因，后续几十条错误可能都是它的级联结果。
+
 ## 5. 输入验证与日志
 
 程序边界先验证：

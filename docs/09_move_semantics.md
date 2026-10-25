@@ -155,6 +155,27 @@ std::string make_name() {
 
 显式 `std::move` 可能阻止命名返回值优化（NRVO）。只在确实需要把某个对象转换为右值表达式时使用。
 
+### 返回值优化与复制消除
+
+C++17 起，从同类型纯右值初始化对象时，编译器必须省略中间对象：
+
+```cpp
+std::string make_text() {
+    return std::string{"hello"}; // 保证复制消除
+}
+```
+
+对于有名字的局部变量，NRVO（命名返回值优化）通常也会省略复制/移动，但标准不保证所有优化器一定这样做：
+
+```cpp
+std::string make_greeting() {
+    std::string result = "hello";
+    return result; // 允许 NRVO；即使没有，也会隐式按右值返回
+}
+```
+
+无论 NRVO 是否发生，都不要改成 `return std::move(result);`。按值返回拥有清晰的生命周期；只有基准测试证明具体路径存在不受欢迎的复制时，才进一步调整接口。
+
 ## 5. 移动不等于“对象消失”
 
 ```cpp
