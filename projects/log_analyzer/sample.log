@@ -1,0 +1,6 @@
+2026-10-25T10:15:30Z INFO request completed status=200 duration_ms=37
+2026-10-25T10:16:02Z WARN request completed status=503 duration_ms=812
+2026-10-25T10:16:44Z INFO request completed status=200 duration_ms=22
+2026-10-25T11:02:10Z ERROR request completed status=500 duration_ms=143
+2026-10-25T11:03:19Z DEBUG request completed status=404 duration_ms=5
+this line is intentionally invalid
