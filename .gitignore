@@ -9,3 +9,4 @@
 *.ilk
 *.user
 compile_commands.json
+/eg
