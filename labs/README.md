@@ -51,6 +51,15 @@ Hello, Ada! Age: 36
 
 `is_prime(INT_MAX)` 的测试要求循环中不能把 `int` 乘法溢出。使用 `long long` 保存检查上界。
 
+另外实现 `cleanup_scores(std::vector<int>)`：
+
+- 保留 0 到 100（含边界）的分数。
+- 删除负数和大于 100 的分数。
+- 使用 C++20 的 `std::erase_if`，不要手写索引循环。
+- 返回清理后的容器，并保持剩余元素的相对顺序。
+
+完整原理和多容器示例见[第 3 章](../docs/03_control_flow_and_functions.md#安全方案-2用-stderase_if-批量删除)。
+
 ## Lab 04：借用序列
 
 实现 `sum(std::span<const int>)` 和 `average(std::span<const int>)`。

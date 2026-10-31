@@ -10,6 +10,7 @@ find_package(Threads REQUIRED)
 
 option(CPP20_COURSE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 option(CPP20_COURSE_BUILD_PROJECT "Build the capstone project" ON)
+option(CPP20_COURSE_BUILD_CAREER "Build the career bootcamp labs" ON)
 option(CPP20_COURSE_SANITIZE "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 
 add_library(course_warnings INTERFACE)
@@ -72,6 +73,32 @@ target_link_libraries(labs_solution PRIVATE
     Threads::Threads
 )
 add_test(NAME labs_solution COMMAND labs_solution)
+
+add_executable(example_container_mutation examples/container_mutation.cpp)
+target_link_libraries(example_container_mutation PRIVATE course_warnings)
+add_test(NAME example_container_mutation COMMAND example_container_mutation)
+
+add_executable(example_compatibility_probe examples/compatibility_probe.cpp)
+target_link_libraries(example_compatibility_probe PRIVATE
+    course_warnings
+    Threads::Threads
+)
+add_test(NAME example_compatibility_probe COMMAND example_compatibility_probe)
+
+add_executable(example_blocking_queue examples/blocking_queue.cpp)
+target_link_libraries(example_blocking_queue PRIVATE
+    course_warnings
+    Threads::Threads
+)
+add_test(NAME example_blocking_queue COMMAND example_blocking_queue)
+
+add_executable(example_file_io examples/file_io.cpp)
+target_link_libraries(example_file_io PRIVATE course_warnings)
+add_test(NAME example_file_io COMMAND example_file_io)
+
+if(CPP20_COURSE_BUILD_CAREER AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/career_bootcamp/labs")
+    add_subdirectory(career_bootcamp/labs)
+endif()
 
 if(CPP20_COURSE_BUILD_PROJECT)
     add_subdirectory(projects/log_analyzer)

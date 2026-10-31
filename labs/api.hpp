@@ -35,6 +35,7 @@ std::string fizzbuzz(int value);
 std::optional<std::size_t> binary_search(
     std::span<const int> values, int target);
 bool is_prime(int value);
+std::vector<int> cleanup_scores(std::vector<int> scores);
 
 int sum(std::span<const int> values);
 std::optional<double> average(std::span<const int> values);

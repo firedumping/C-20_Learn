@@ -93,6 +93,49 @@ decltype(ref) y = value;   // int&
 decltype((value)) z = y;   // int&，多括号让表达式成为左值
 ```
 
+可以用 `static_assert` 和 `<type_traits>` 把推导结果固定下来：
+
+```cpp
+#include <string>
+#include <type_traits>
+
+int value = 42;
+int& reference = value;
+const int constant_value = 7;
+
+auto first = value;               // int
+auto second = reference;          // int：auto 丢弃引用
+auto third = constant_value;      // int：auto 丢弃顶层 const
+decltype(reference) fourth = value; // int&
+
+static_assert(std::is_same_v<decltype(first), int>);
+static_assert(std::is_same_v<decltype(second), int>);
+static_assert(std::is_same_v<decltype(third), int>);
+static_assert(std::is_same_v<decltype(fourth), int&>);
+```
+
+类型推导可以概括为：
+
+| 写法 | 结果 | 用途 |
+|---|---|---|
+| `auto x = expr;` | 值类型，丢弃引用和顶层 `const` | 函数确实需要独立副本 |
+| `auto& x = expr;` | 左值引用 | 修改原对象 |
+| `const auto& x = expr;` | 只读引用，可延长临时对象生命周期 | 只读遍历大型对象 |
+| `auto&& x = expr;` | 根据实参得到左值或右值引用 | 转发和通用代码 |
+
+`auto&&` 的结果也遵循引用折叠：
+
+```cpp
+std::string owned = "hello";
+auto&& first = owned;              // std::string&
+auto&& second = std::string{"hi"}; // std::string&&
+
+static_assert(std::is_same_v<decltype(first), std::string&>);
+static_assert(std::is_same_v<decltype(second), std::string&&>);
+```
+
+不要根据“看起来像右值引用”来判断；关键要看初始化表达式是左值还是右值，以及 `auto` 实际推导出的类型。
+
 通用代码中，`auto&&` 常与转发引用配合；在范围 `for` 中，`const auto&` 表示只读观察，`auto&&` 有时用于保留元素的值类别。
 
 ## 4. 模板定义为什么在头文件

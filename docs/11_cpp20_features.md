@@ -110,6 +110,38 @@ for (int value : make_even_squares(values)) {
 }
 ```
 
+完整可运行示例：
+
+```cpp
+#include <iostream>
+#include <ranges>
+#include <vector>
+
+int main() {
+    const std::vector<int> values{1, 2, 3, 4, 5, 6};
+
+    auto view = values
+        | std::views::filter([](int value) {
+              return value % 2 == 0;
+          })
+        | std::views::transform([](int value) {
+              return value * value;
+          });
+
+    for (const int value : view) {
+        std::cout << value << ' ';
+    }
+}
+```
+
+输出：
+
+```text
+4 16 36
+```
+
+这里的 `view` 不保存 `4`、`16`、`36` 的新数组。每次遍历时，它依次从底层 `values` 取元素、执行过滤和转换。若只想处理前两个结果，可以继续接 `| std::views::take(2)`。
+
 ### 视图的生命周期风险
 
 ```cpp

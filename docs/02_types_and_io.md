@@ -209,7 +209,246 @@ if (std::getline(std::cin, line)) {
 
 混用 `>>` 和 `getline` 时，`>>` 会留下换行符。下一次 `getline` 可能立即读到空行。学习阶段先分开读取模式，或在确有必要时用 `std::ws` 丢弃前导空白。
 
-## 7. `const` 与 `constexpr`
+## 7. 文件输入输出
+
+标准库的文件流位于 `<fstream>`：
+
+- `std::ifstream`：只读输入文件。
+- `std::ofstream`：只写输出文件。
+- `std::fstream`：同时读写，只有确实需要时才使用。
+
+文件流同样采用 RAII。对象离开作用域时自动关闭文件，因此不需要在每条返回路径上手动调用 `close()`。
+
+### 写入文本文件
+
+```cpp
+#include <fstream>
+#include <string>
+
+bool write_text(const std::string& path, const std::string& text) {
+    std::ofstream output{path, std::ios::out | std::ios::trunc};
+    if (!output) {
+        return false; // 文件无法创建或打开
+    }
+
+    output << text;
+    if (!output) {
+        return false; // 写入过程中失败
+    }
+
+    output.close();
+    return static_cast<bool>(output); // 检查关闭/flush 是否失败
+}
+```
+
+`std::ios::out | std::ios::trunc` 表示“输出并清空已有内容”。`ofstream` 默认通常已经采用这个模式，但显式写出来更能说明会覆盖旧文件。
+
+调用示例：
+
+```cpp
+#include <iostream>
+
+int main() {
+    if (!write_text("greeting.txt", "hello\nC++20\n")) {
+        std::cerr << "cannot write greeting.txt\n";
+        return 1;
+    }
+}
+```
+
+程序成功执行后，当前工作目录中会出现：
+
+```text
+hello
+C++20
+```
+
+注意：**相对路径相对于程序运行时的当前工作目录，而不是源文件所在目录。** 从 `build/` 目录运行程序时，`greeting.txt` 通常也会出现在 `build/` 中。
+
+### 追加写入
+
+追加日志时使用 `std::ios::app`：
+
+```cpp
+bool append_line(const std::string& path, const std::string& line) {
+    std::ofstream output{path, std::ios::out | std::ios::app};
+    if (!output) {
+        return false;
+    }
+
+    output << line << '\n';
+    output.close();
+    return static_cast<bool>(output);
+}
+```
+
+`app` 会把每次写入放到文件末尾，不会像 `trunc` 那样清空旧内容。
+
+模式速查：
+
+| 模式 | 含义 | 常见用途 |
+|---|---|---|
+| `std::ios::in` | 打开用于读取 | `ifstream` 默认 |
+| `std::ios::out` | 打开用于写入 | `ofstream` |
+| `std::ios::trunc` | 清空已有内容 | 覆盖生成报告 |
+| `std::ios::app` | 每次写到末尾 | 日志追加 |
+| `std::ios::ate` | 打开后定位到末尾，但仍可移动位置 | 特殊随机读写 |
+| `std::ios::binary` | 禁用文本换行翻译 | 二进制文件 |
+
+模式可以组合，但不要把 `trunc` 和 `app` 混在一起猜测结果。明确业务是要“覆盖”还是“追加”。
+
+### 逐行读取文本文件
+
+```cpp
+#include <fstream>
+#include <iostream>
+#include <string>
+
+bool print_lines(const std::string& path) {
+    std::ifstream input{path};
+    if (!input) {
+        return false; // 文件不存在、路径错误或没有权限
+    }
+
+    std::string line;
+    while (std::getline(input, line)) {
+        std::cout << line << '\n';
+    }
+
+    return input.eof() && !input.bad();
+}
+```
+
+`while (std::getline(input, line))` 把“读取是否成功”直接放进循环条件。不要写成：
+
+```cpp
+// 错误：检查 eof 太早，可能多处理一次或处理空行
+while (!input.eof()) {
+    std::getline(input, line);
+    // 此时没有立即检查 getline 是否成功
+}
+```
+
+标准做法是读取后立刻用返回值判断，或把读取作为循环条件。
+
+### 流状态：`good`、`fail`、`bad`、`eof`
+
+文件流不会默认抛异常，而是记录状态：
+
+| 状态 | 含义 |
+|---|---|
+| `good()` | 当前没有失败标志 |
+| `fail()` | 打开失败、格式读取失败或操作失败 |
+| `bad()` | 底层 I/O 严重错误 |
+| `eof()` | 已尝试读到输入末尾 |
+
+重要区别：
+
+- 到达 EOF 不一定是错误。
+- `fail()` 可能同时因 EOF 被设置。
+- 读取格式错误后，流通常保持失败状态，后续读取会继续失败。
+- 需要再次使用流时，先处理错误并调用 `clear()` 清除状态；`clear()` 不会修复文件或恢复丢失的数据。
+
+检查文件能否正常处理，至少需要区分三种情况：
+
+```text
+文件打不开
+读取中途发生 I/O 错误
+正常到达文件末尾
+```
+
+### 写入时检查错误
+
+```cpp
+#include <fstream>
+#include <string>
+#include <vector>
+
+bool save_records(const std::string& path,
+                  const std::vector<std::string>& records) {
+    std::ofstream output{path, std::ios::out | std::ios::trunc};
+    if (!output) {
+        return false;
+    }
+
+    for (const std::string& record : records) {
+        output << record << '\n';
+        if (!output) {
+            return false;
+        }
+    }
+
+    output.close();
+    return static_cast<bool>(output);
+}
+```
+
+写入失败可能在循环中途发生。发现失败后必须停止，不要把不完整文件当作成功结果。
+
+### 文本模式与二进制模式
+
+文本模式针对字符行设计；二进制模式禁止平台对换行等字节做文本转换：
+
+```cpp
+std::ifstream input{"data.bin", std::ios::in | std::ios::binary};
+std::ofstream output{"copy.bin", std::ios::out | std::ios::binary | std::ios::trunc};
+```
+
+二进制读取必须检查实际读到的字节数：
+
+```cpp
+#include <array>
+#include <cstddef>
+#include <fstream>
+#include <optional>
+
+std::optional<std::array<std::byte, 4>>
+read_four_bytes(const std::string& path) {
+    std::ifstream input{path, std::ios::in | std::ios::binary};
+    if (!input) {
+        return std::nullopt;
+    }
+
+    std::array<std::byte, 4> buffer{};
+    input.read(reinterpret_cast<char*>(buffer.data()),
+               static_cast<std::streamsize>(buffer.size()));
+    if (input.gcount() != static_cast<std::streamsize>(buffer.size())) {
+        return std::nullopt;
+    }
+    return buffer;
+}
+```
+
+`input.gcount()` 表示最近一次 `read` 实际读了多少字节。即使文件只有两个字节，也可能只设置 EOF，而不应先假设数组已完整填充。
+
+二进制模式不等于“可以直接写结构体内存”。字段对齐、字节序、版本和长度仍是格式协议的一部分，详见[第 18 章](18_data_boundaries.md)。
+
+### 文件路径和常见错误
+
+- 打开后立即检查 `if (!input)`，不要假设文件一定存在。
+- 输出时明确覆盖还是追加。
+- 不要一边读取文件一边用 `trunc` 打开同一个文件。
+- 日志常用 `'\n'`；`std::endl` 还会强制 flush，循环中频繁使用可能影响性能。
+- 流对象析构会关闭文件，但若需要检测关闭失败，应显式 `close()` 后检查状态。
+- 外部文件名可能包含编码和平台差异；需要路径操作时使用第 18 章的 `std::filesystem`。
+- 不要在未验证结果前把写到一半的文件标记为成功。
+
+### 完整文件处理流程
+
+一个可靠的文件处理函数通常按以下顺序：
+
+1. 打开文件并检查是否成功。
+2. 逐行或逐块处理，并检查每次读取结果。
+3. 对业务数据做范围验证。
+4. 写入临时结果并检查每次写入。
+5. 成功关闭后再提交或替换目标文件。
+6. 失败时返回明确错误，不输出“成功”。
+
+仓库中的
+[`examples/file_io.cpp`](../examples/file_io.cpp)
+演示了写入、关闭、重新读取、错误检查和临时文件清理。
+
+## 8. `const` 与 `constexpr`
 
 ```cpp
 const double tax_rate = 0.13;       // 运行期不可改
@@ -229,7 +468,7 @@ static_assert(square(5) == 25);
 - 能加 `const` 的函数参数/成员函数通常更容易推理。
 - 不要为了“显得现代”把普通局部变量都写成 `auto`；明确的 `int count{}` 更有信息量。
 
-## 8. 类型的边界：`sizeof` 与对象表示
+## 9. 类型的边界：`sizeof` 与对象表示
 
 ```cpp
 #include <iostream>
@@ -247,7 +486,7 @@ int main() {
 
 不要假设结构体大小等于成员大小之和。编译器可能为对齐插入填充字节。文件格式和网络协议需要显式序列化，不能直接把任意对象内存写进文件。
 
-## 9. 第一套风格规则
+## 10. 第一套风格规则
 
 - 变量声明时初始化：`int count{};`。
 - 使用 `std::size_t` 或容器的 `size_type` 表示大小，避免负数转无符号。

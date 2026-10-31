@@ -29,6 +29,8 @@ add_executable(edgebot_lab_tests
 )
 target_link_libraries(edgebot_lab_tests PRIVATE edgebot_lab_core)
 
-enable_testing()
-add_test(NAME edgebot_lab_tests COMMAND edgebot_lab_tests)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    enable_testing()
+    add_test(NAME edgebot_lab_tests COMMAND edgebot_lab_tests)
+endif()
 

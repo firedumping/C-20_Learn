@@ -52,6 +52,10 @@ bool is_prime(int value) {
     return false; // TODO
 }
 
+std::vector<int> cleanup_scores(std::vector<int> scores) {
+    return scores; // TODO: use std::erase_if for values outside [0, 100].
+}
+
 int sum(std::span<const int> values) {
     (void)values;
     return 0; // TODO

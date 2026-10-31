@@ -116,6 +116,11 @@ void test_lab03_control_flow() {
     check(course_labs::is_prime(2'147'483'647),
           "lab03: large Mersenne prime without i*i overflow");
 
+    const auto cleaned = course_labs::cleanup_scores(
+        {-10, 0, 59, 100, 101, 42});
+    expect_equal(cleaned, std::vector<int>{0, 59, 100, 42},
+                 "lab03: erase_if keeps only scores in [0, 100]");
+
     const std::vector<int> values{1, 3, 5, 7, 9};
     expect_equal(course_labs::binary_search(values, 5), std::optional<std::size_t>{2},
           "lab03: binary search finds middle");

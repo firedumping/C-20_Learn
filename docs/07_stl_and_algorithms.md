@@ -161,7 +161,9 @@ auto counter = [calls]() mutable {
 
 ## 6. 遍历并删除
 
-错误方式：
+完整原理和多种容器示例见[第 3 章](03_control_flow_and_functions.md#为什么遍历时不能随意插入或删除)，这里重点区分几个容易混淆的算法。
+
+### 错误方式：删除后继续使用当前迭代器
 
 ```cpp
 for (auto it = values.begin(); it != values.end(); ++it) {
@@ -171,18 +173,98 @@ for (auto it = values.begin(); it != values.end(); ++it) {
 }
 ```
 
-现代标准库写法：
+`erase(it)` 会使 `it` 失效。循环表达式随后又执行 `++it`，就是在操作失效迭代器。
+
+### `std::erase_if`：删除并缩小容器
+
+```cpp
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<int> values{3, -1, 7, -5, 2};
+
+    const auto removed = std::erase_if(values, [](int value) {
+        return value < 0;
+    });
+
+    std::cout << "removed=" << removed << '\n';
+}
+```
+
+输出：
+
+```text
+removed=2
+```
+
+对容器使用 `erase_if` 时，调用后容器本身已经缩小。`std::vector`、`std::map`、`std::set`、`std::list` 和对应无序容器在 C++20 都提供该类接口，但别忘记包含各自容器头文件。
+
+### `std::remove_if`：只搬移，不删除
+
+传统算法 `std::remove_if` 返回“新逻辑结尾”，但容器大小不会改变：
 
 ```cpp
 #include <algorithm>
+#include <iostream>
 #include <vector>
 
-std::erase_if(values, [](int value) {
-    return value < 0;
-});
+int main() {
+    std::vector<int> values{3, -1, 7, -5, 2};
+
+    const auto new_end = std::remove_if(
+        values.begin(), values.end(),
+        [](int value) { return value < 0; });
+
+    std::cout << "size before erase=" << values.size() << '\n';
+    values.erase(new_end, values.end());
+    std::cout << "size after erase=" << values.size() << '\n';
+}
 ```
 
-如果需要把元素移到另一容器，遍历时不要直接删除；用 `std::remove_if` 或先记录。C++20 的 `std::erase_if` 对常见容器提供统一接口。
+输出：
+
+```text
+size before erase=5
+size after erase=3
+```
+
+`remove_if` 之后，`[new_end, values.end())` 中仍可能保存已移动元素留下的值，但状态未指定，不能依赖这些值还原被删除对象。因此它不能单独完成删除，必须配合容器的 `erase`，这就是旧式的 remove-erase idiom。
+
+### 手动迭代器删除
+
+如果删除前还要执行额外操作，使用 `erase` 的返回迭代器：
+
+```cpp
+for (auto it = values.begin(); it != values.end();) {
+    if (*it < 0) {
+        it = values.erase(it);
+    } else {
+        ++it;
+    }
+}
+```
+
+这段代码是自包含的：删除时不执行额外的 `++it`。它适合逻辑较复杂、不能直接表达成单一谓词的场合。
+
+### 把元素移动到另一个容器
+
+如果需要保留被删除的元素，而不是销毁它们，不应使用 `erase_if`：
+
+```cpp
+std::vector<int> kept;
+std::vector<int> removed;
+
+for (const int value : values) {
+    if (value < 0) {
+        removed.push_back(value);
+    } else {
+        kept.push_back(value);
+    }
+}
+```
+
+这段代码没有边遍历边修改原容器，行为最容易推理。数据量较大时，再考虑 `std::partition` 或先分区后移动等优化。
 
 ## 7. 关联容器
 

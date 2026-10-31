@@ -37,6 +37,16 @@ left + (right - left) / 2
 
 虽然 `std::size_t` 下溢行为与有符号溢出不同，这种写法仍能让边界意图清楚。质数循环使用 `long long divisor`，避免 `divisor * divisor` 在 `int` 中溢出。
 
+清理分数可以直接把谓词交给标准库：
+
+```cpp
+std::erase_if(scores, [](int score) {
+    return score < 0 || score > 100;
+});
+```
+
+谓词返回 `true` 表示删除。`erase_if` 直接修改传入的 vector，不需要再调用一次容器 `erase`。
+
 ## Lab 04
 
 `sum` 的 `int` 累加器本身也可能溢出。当前测试没有覆盖这一点，成熟版本应增加 `checked_sum` 或返回更大类型。`average` 先处理空 span，避免除零和无效返回值。

@@ -51,7 +51,6 @@ int main() {
 ```cpp
 #include <chrono>
 #include <iostream>
-#include <stop_token>
 #include <thread>
 
 void poll_forever(std::stop_token stop) {
@@ -159,6 +158,55 @@ private:
 ```
 
 `wait` 会释放锁并睡眠，醒来后重新获取锁。谓词用于处理伪唤醒和状态变化。所有修改谓词状态的路径都必须通知等待者。
+
+把 `pop` 拆开看：
+
+1. `unique_lock` 先获得互斥量。
+2. `wait` 在持锁状态下检查谓词。
+3. 条件为假时，`wait` 自动释放锁并睡眠，不会让生产者被永久挡住。
+4. 被通知后重新获得锁，再检查一次谓词。
+5. 条件为真时，`pop` 在仍持锁的状态下读取并移除队列头部。
+
+假设上面的 `BlockingQueue` 已放在同一个文件中，下面演示生产者、消费者和关闭流程：
+
+```cpp
+#include <iostream>
+#include <stop_token>
+#include <thread>
+
+int main() {
+    BlockingQueue queue;
+
+    std::jthread consumer{[&queue] {
+        int value = 0;
+        while (queue.pop(value)) {
+            std::cout << "consumed " << value << '\n';
+        }
+    }};
+
+    std::jthread producer{[&queue] {
+        for (int value = 1; value <= 3; ++value) {
+            queue.push(value);
+        }
+        queue.close();
+    }};
+}
+```
+
+输出：
+
+```text
+consumed 1
+consumed 2
+consumed 3
+```
+
+`close()` 把 `closed_` 设为 `true` 并执行 `notify_all()`。消费者把已有元素处理完后，下一次 `pop` 看到“已关闭且队列为空”就不再等待，返回 `false`，线程正常结束。`jthread` 析构时会 join 两个线程。
+
+这个示例为了聚焦条件变量，允许多次 `pop` 但只启动一个消费者。多个消费者同时处理时，还需要定义结果顺序、异常处理和关闭策略。
+
+完整可编译版本位于
+[`examples/blocking_queue.cpp`](../examples/blocking_queue.cpp)。
 
 ## 6. 原子类型
 

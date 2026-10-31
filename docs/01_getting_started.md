@@ -331,14 +331,168 @@ int answer() { return 42; }
 
 ## 练习 3：兼容性探测
 
-写一个程序，打印以下内容并记录你的工具链结果：
+这项练习要区分三个概念：
 
-- `__cplusplus` 的值。
-- 是否能包含 `<format>`。
-- 是否能包含 `<ranges>`。
-- 是否能使用 `std::jthread`。
+1. **语言模式**：编译器把代码当作哪一版 C++ 来解析。
+2. **头文件是否存在**：预处理阶段能否找到某个标准头。
+3. **标准库功能是否可用**：模板、函数和类型能否真正编译和使用。
 
-不要把“不能编译”当作学习失败；这是建立工具链认知的一部分。
+`#include` 是预处理指令，不是运行时操作，所以不能写：
+
+```cpp
+if (can_include_format) {
+    #include <format> // 错误：include 不能放在运行时 if 中
+}
+```
+
+正确方式是使用标准特性宏。每个 C++20 标准库功能在 `<version>` 或对应头文件中定义一个 `__cpp_lib_*` 宏。宏达到规定版本值，表示标准库声明支持该功能。
+
+下面是一个可运行的探测程序：
+
+```cpp
+#include <algorithm>
+#include <iostream>
+#include <string>
+#include <thread>
+#include <vector>
+#include <version>
+
+#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
+#include <format>
+#define COURSE_HAS_FORMAT 1
+#else
+#define COURSE_HAS_FORMAT 0
+#endif
+
+#if defined(__cpp_lib_ranges) && __cpp_lib_ranges >= 201911L
+#include <ranges>
+#define COURSE_HAS_RANGES 1
+#else
+#define COURSE_HAS_RANGES 0
+#endif
+
+#if defined(__cpp_lib_jthread) && __cpp_lib_jthread >= 201911L
+#define COURSE_HAS_JTHREAD 1
+#else
+#define COURSE_HAS_JTHREAD 0
+#endif
+
+int main() {
+    std::cout << "__cplusplus = " << __cplusplus << '\n';
+    std::cout << "<format>:  "
+              << (COURSE_HAS_FORMAT ? "yes" : "no") << '\n';
+    std::cout << "<ranges>:  "
+              << (COURSE_HAS_RANGES ? "yes" : "no") << '\n';
+    std::cout << "jthread:   "
+              << (COURSE_HAS_JTHREAD ? "yes" : "no") << '\n';
+
+#if COURSE_HAS_FORMAT
+    const std::string text = std::format("format works: {}", 42);
+    std::cout << text << '\n';
+#endif
+
+#if COURSE_HAS_RANGES
+    std::vector<int> values{3, 1, 2};
+    std::ranges::sort(values);
+    std::cout << "ranges::sort works\n";
+#endif
+
+#if COURSE_HAS_JTHREAD
+    std::jthread worker{[] {
+        std::cout << "jthread works\n";
+    }};
+#endif
+}
+```
+
+GCC/Clang 编译：
+
+```bash
+g++ -std=c++20 -Wall -Wextra -Wpedantic \
+    compatibility_probe.cpp -o compatibility_probe
+./compatibility_probe
+```
+
+MSVC：
+
+```bat
+cl /std:c++20 /EHsc /Zc:__cplusplus compatibility_probe.cpp
+compatibility_probe.exe
+```
+
+`/Zc:__cplusplus` 让 MSVC 的 `__cplusplus` 正确报告语言模式。
+
+可能的输出：
+
+```text
+__cplusplus = 202002L
+<format>:  yes
+<ranges>:  yes
+jthread:   yes
+format works: 42
+ranges::sort works
+jthread works
+```
+
+`202002L` 对应 C++20 语言模式。某个宏为 `no` 不表示整个 C++20 学习失败，只是当前“编译器 + 标准库”没有声明该功能。
+
+### 头文件探测与 `__has_include`
+
+现代预处理器还支持：
+
+```cpp
+#if defined(__has_include)
+#if __has_include(<format>)
+#include <format>
+#endif
+#endif
+```
+
+注意 `__has_include` 开头是两个下划线。它只能回答“能否找到头文件”，不能保证实现完整；真正判断功能仍应看对应的 `__cpp_lib_*` 宏。
+
+如果 `__has_include` 不可用，不必强行使用它。上面的特性宏版本已经足够完成本课程的大多数兼容性判断。
+
+### 分项编译验证
+
+宏检测是快速筛选。为了确认功能真的可用，再写三个最小文件分别编译。`test_format.cpp`：
+
+```cpp
+#include <format>
+
+int main() {
+    const auto text = std::format("{}", 42);
+    return text.empty() ? 1 : 0;
+}
+```
+
+`test_ranges.cpp`：
+
+```cpp
+#include <algorithm>
+#include <vector>
+
+int main() {
+    std::vector<int> values{3, 1, 2};
+    std::ranges::sort(values);
+}
+```
+
+`test_jthread.cpp`：
+
+```cpp
+#include <thread>
+
+int main() {
+    std::jthread worker{[] {}};
+}
+```
+
+分别编译后记录：哪一项成功、哪一项失败、失败信息是什么。这样得到的才是可复用的工具链结论，而不是一个无法解释的 yes/no。
+
+不要把“不能编译”当作学习失败。这是建立工具链认知的一部分，也是后续选择功能、安装依赖和配置 CI 的依据。
+
+仓库中的完整可运行版本位于
+[`examples/compatibility_probe.cpp`](../examples/compatibility_probe.cpp)。
 
 ## 自测
 

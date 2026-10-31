@@ -52,16 +52,26 @@
 | 18 | 文件、Unicode、严格解析、可移植二进制格式 | [18](docs/18_data_boundaries.md) | 输入输出与数据边界 |
 | 19 | PMR、抽象选择、有界并发、测试与性能决策 | [19](docs/19_expert_decisions.md) | 从“会写”进入技术选型 |
 
+## 求职冲刺包
+
+仓库中的 [career_bootcamp](career_bootcamp/README.md) 补充了端侧系统方向的事件循环、Linux 调试、二进制协议、故障恢复和面试验收，并与基础课程共用同一套工程规范。
+
 ## 目录
 
 ```text
 .
 ├── docs/                 分章教程
+├── career_bootcamp/ 端侧系统与求职项目
 ├── labs/
 │   ├── README.md         14 个练习的完整题目
 │   ├── starter/          留空待实现的练习入口
 │   ├── solutions/        参考实现和自动检查
 │   └── answer_key.md     关键思路、常见错误和复盘答案
+├── examples/
+│   ├── container_mutation.cpp  容器遍历、删除和插入示例
+│   ├── compatibility_probe.cpp 编译器与标准库功能探测
+│   ├── blocking_queue.cpp      条件变量生产者/消费者示例
+│   └── file_io.cpp             文件写入、读取和错误检查示例
 ├── projects/
 │   └── log_analyzer/     C++20 综合项目
 ├── CMakeLists.txt
@@ -79,6 +89,8 @@
 - macOS: Apple Clang 16+ 或 Homebrew LLVM 18+。
 
 同时安装 CMake 3.25+；预设文件使用 Ninja 生成器，因此还需要 Ninja 1.11+。如果使用其他生成器，可按文末的手工 CMake 命令构建。`std::format`、模块和协程的支持程度与标准库版本有关，参见[第 1 章](docs/01_getting_started.md)的兼容性说明。
+
+本仓库当前以 WSL2 原生目录 /home/ring/C-20_Learn 为基础。可直接运行 scripts/build.sh dev，或分别执行下面的 CMake 命令。
 
 ## 构建
 
@@ -111,6 +123,10 @@ ctest --test-dir build --output-on-failure
 ```powershell
 .\build\labs_starter.exe
 .\build\labs_solution.exe
+.\build\example_container_mutation.exe
+.\build\example_compatibility_probe.exe
+.\build\example_blocking_queue.exe
+.\build\example_file_io.exe
 ```
 
 Visual Studio 预设的输出位于 `build-vs\Debug\`。Linux、macOS 或 WSL 下可执行文件没有 `.exe` 后缀，例如运行 `./build/labs_starter`。CMake 的配置输出会给出可执行文件位置。

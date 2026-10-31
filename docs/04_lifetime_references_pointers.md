@@ -120,6 +120,37 @@ int* dangling = nullptr;
 // *dangling 未定义行为
 ```
 
+### 指针本身是否可修改、对象是否可修改
+
+`const` 放在 `*` 的哪一侧，限制的对象不同：
+
+```cpp
+int first = 10;
+int second = 20;
+
+const int* pointer_to_const = &first;
+// *pointer_to_const = 11; // 错误：不能通过指针修改对象
+pointer_to_const = &second; // 可以：指针本身可以改指向
+
+int* const constant_pointer = &first;
+*constant_pointer = 11;     // 可以：对象可修改
+// constant_pointer = &second; // 错误：指针本身不能改指向
+
+const int* const fixed_view = &first;
+// 对象不能通过它修改，指针也不能改指向
+```
+
+记忆方法：
+
+| 写法 | `*ptr` 是否可写 | `ptr` 是否可改指向 |
+|---|---:|---:|
+| `int*` | 是 | 是 |
+| `const int*` | 否 | 是 |
+| `int* const` | 是 | 否 |
+| `const int* const` | 否 | 否 |
+
+从右向左读更清楚：`int* const` 是“const pointer to int”；`const int*` 是“pointer to const int”。
+
 ## 5. 数组、指针算术和 `std::span`
 
 数组在表达式中经常退化为指向首元素的指针：

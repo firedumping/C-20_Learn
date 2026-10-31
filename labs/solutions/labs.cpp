@@ -143,6 +143,13 @@ bool is_prime(int value) {
     return true;
 }
 
+std::vector<int> cleanup_scores(std::vector<int> scores) {
+    std::erase_if(scores, [](int score) {
+        return score < 0 || score > 100;
+    });
+    return scores;
+}
+
 int sum(std::span<const int> values) {
     long long result = 0;
     for (const int value : values) {
